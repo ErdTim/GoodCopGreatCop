@@ -1,15 +1,10 @@
-// Dailymotion PlayerAPI
-;window.dmAsyncInit = function() {
-    DM.init({
-        // apiKey: 'your app id',
-        status: true,
-        cookie: true
-    });
-};
-(function() {
-    var e = document.createElement('script'); e.async = true;
-    e.src = document.location.protocol + '//api.dmcdn.net/all.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(e, s);
+// YouTube PlayerAPI
+;(function() {
+    var e = document.createElement('script');
+    var s = document.getElementsByTagName('script')[0];
+    e.async = true;
+    e.src = 'https://www.youtube.com/player_api';
+    s.parentNode.insertBefore(e, s);
 }());
 
 

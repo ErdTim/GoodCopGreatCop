@@ -1,10 +1,10 @@
 /*
  * Plugin Name: GoodCopGreatCop
  * Plugin URI: http://www.goodcopgreatcop.com
- * Description: Dailymotion API & view construction
+ * Description: YouTube API & view construction
  * Author: Michael Kafka
  * Author URI: http://www.makfak.com
- * Version: 1.0
+ * Version: 2.0
  */
 ;(function ( $, window, document, undefined ) {
 
@@ -14,7 +14,6 @@
 
     var Plugin = function ( element, options ) {
         this._name = pluginName;
-        this.version = '1.0';
         this.el = element;
         this.obj = $(element);
         this._options = options;
@@ -23,11 +22,10 @@
         this.init();
     };
 
-    var dailyMotion = {
-        user : 'https://api.dailymotion.com/user/{{user}}?fields=description,id,screenname,url,videos_total',
-        videos : 'https://api.dailymotion.com/user/{{user}}/videos?fields=duration,embed_url,id,title,url,thumbnail_url,thumbnail_large_url&sort=recent&page={{page}}&limit=100',
-        playlist : 'https://api.dailymotion.com/playlist/{{playlist}}/videos?fields=duration,embed_url,id,title,url,thumbnail_url,thumbnail_large_url&sort=recent&page={{page}}&limit=100',
-        playlist_info : 'https://api.dailymotion.com/playlist/{{playlist}}?fields=description'
+    var youTube = {
+        user : '//gdata.youtube.com/feeds/api/users/{{user}}?v=2&alt=json',
+        videos : '//gdata.youtube.com/feeds/api/users/{{user}}/uploads?v=2&alt=jsonc&start-index={{startIndex}}',
+        video_url : '//www.youtube.com/watch?v={{id}}'
     };
 
     Plugin.prototype = {
@@ -42,7 +40,7 @@
             about : 'footer .text',
             about_text : 'footer .text p',
             footer_orientation : 'horizontal',
-            clear_cache : true
+            clear_cache : false
         },
 
         template:   '{{#videos}} \
@@ -75,13 +73,11 @@
                                 </a> \
                             <span>',
 
-        video_container_class : 'dm_player',
+        video_container_id : 'yt_player',
 
         data : {
-            videos : {},
-            playlist : {},
-            playlist_info : {},
-            user : {}
+            user : {},
+            videos : {}
         },
 
         init: function (options) {
@@ -92,32 +88,37 @@
             this._options = $.extend(true, {}, this.opts);
 
             $.when(
-                this._fetchData('playlist'),
                 this._fetchData('user'),
-                this._fetchData('playlist_info')
+                this._fetchData('videos')
             ).then(function(d) {
-                self.render();
+                self.render(true);
             });
         },
 
-        render : function () {
+        render : function (bindEvents) {
             var self = this;
+            var view;
+            var lastItemIndex;
 
-            if (this.data.playlist) {
-                this.data.playlist.list = this._setImageSize(this.data.playlist.list);
-                this.data.playlist.list = this._convertDuration(this.data.playlist.list);
+            if (!this.data.videos) {
+                console.log('Something went horribly awry.');
+                return;
+            } else {
+                view = this._makeView( this.data.videos.data.items );
+                lastItemIndex = this._hasMore(this.data.videos.data)
             }
 
             this._updateDeviceClass();
 
             this.obj.append(
                 Mustache.render(this.template, {
-                    'videos' : this.data.playlist.list
+                    'videos' : view
                 })
             );
 
+            // TODO : update Data & Views
             this._updatePageDescription();
-            this._updateAbout();
+            // this._updateAbout();
 
             setTimeout(function() {
                 /*
@@ -140,17 +141,22 @@
                     }
                 });
 
-                if (self.data.playlist && self.data.playlist.has_more) {
-                    self._loadMore();
+                if ( self.data.videos && lastItemIndex ) {
+                    self._loadMore(lastItemIndex);
                 }
 
-                self._bindEvents();
+                if ( bindEvents ) {
+                    self._bindEvents();
 
-                // scales the Header text
-                self._fitText();
+                    // scales the Header text
+                    self._fitText();
 
-                // sizes the Footer and positions the content
-                self._setupFooter();
+                    // sizes the Footer and positions the content
+                    self._setupFooter();
+
+                    // this doesn't need to live forever
+                    self._removeDailymotionData();
+                }
             }, 0);
         },
 
@@ -203,9 +209,8 @@
             this._pushToHistory($node.attr('href'));
         },
 
-        showEmbed : function (url_fragment) {
-            // url_fragment = "{{id}}_{{title}}"
-            var $node = $('#' + url_fragment.split('_')[0]).find('a');
+        showEmbed : function (id) {
+            var $node = $('#' + id).find('a');
 
             if (this._isDesktop() || this._isTablet()) {
                 this._embedDesktop($node);
@@ -217,27 +222,30 @@
         },
 
         _embedPhone : function ($node) {
+            // we have to do stupid stuff because YT doesn't bubble
+            // 'fullscreenchange' to the parent window
+            var existing = $('#' + this.video_container_id);
+
+            if (existing.length > 0) {
+                existing.remove();
+            }
+
+            // begin in earnest
             var self = this;
-            var target = $('<div class="' + this.video_container_class + '"></div>')[0];
+            var target = $('<div id="' + this.video_container_id + '"></div>')[0];
             var player;
 
             $node.parents('.video').append(target);
             
             setTimeout(function() {
-                player = DM.player(target, {
-                    video: $node.parents('.item').prop('id'),
-                    width: '100%',
-                    height: '100%'
-                });
-
-                player.addEventListener('fullscreenchange', function(e) {
-                    if (!player.fullscreen) {
-                        setTimeout(function() {
-                            $('.' + self.video_container_class).fadeOut(350, function(){
-                                $(this).remove();
-                                self._pushToHistory('/');
-                            });
-                        }, 1000);
+                player = new YT.Player(self.video_container_id, {
+                    videoId : $node.parents('.item').prop('id'),
+                    width : '100%',
+                    height : '100%',
+                    playerVars : {
+                        enablejsapi : 0, // disable JS api
+                        iv_load_policy : 3, // don't show annotations
+                        showinfo : 0 // don't show the toolbar at the top of the video
                     }
                 });
             }, 0);
@@ -284,7 +292,7 @@
         },
 
         _parseURLForHistory : function (url) {
-            return url.match(/\/(([a-zA-Z0-9]+)_([a-zA-Z0-9-]+))_/);
+            return url.match(/\/watch\?v=([a-zA-Z0-9_-]{11})/);
         },
 
         _pushToHistory : function (url) {
@@ -299,15 +307,15 @@
             var match = this._parseURLForHistory(url);
             var state = History.getState();
             var new_url = '?video=' + match[1];
-            var new_page_title = title_base + ' - ' + this._capitalize(match[3]);
+            var new_page_title = title_base + ' - ' + match[1];
             
-            if (state.data.id === match[2]) {
+            if (state.data.id === match[1]) {
                 return false;
             }
 
             History.replaceState({
-                    id : match[2],
-                    slug : match[3]
+                    id : match[1],
+                    slug : match[1]
                 },
                 new_page_title,
                 new_url
@@ -343,62 +351,61 @@
             return false;
         },
 
-        _setImageSize : function (videos) {
-            for (var i = 0; i < videos.length; i++) {
-                // use smaller images if screen size suggests a mobile connection
-                if (this._isPhone()) {
-                    videos[i].thumbnail = videos[i].thumbnail_large_url;    
-                } else {
-                    videos[i].thumbnail = videos[i].thumbnail_url;
-                }
-                
-            }
-            return videos;
-        }, 
+        _makeView : function (list) {
+            var videos = [];
 
-        _convertDuration : function (videos) {
+            for (var i = 0; i < list.length; i++) {
+                videos.push({
+                    id : list[i].id,
+                    thumbnail : list[i].thumbnail.hqDefault,
+                    url : Mustache.render( youTube['video_url'], {
+                        id : list[i].id
+                    }),
+                    embed_url : list[i].content['5'] + '&enablejsapi=0&iv_load_policy=3&showinfo=0',
+                    title : list[i].title,
+                    duration : this._convertDuration(list[i].duration)
+                });
+            }
+
+            // this.data.playlist.list = this._setImageSize(this.data.playlist.list);
+            // this.data.videos.data.items = this._convertDuration(this.data.videos.data.items);
+            return videos;
+        },
+
+        _convertDuration : function (duration) {
             // duration = time in seconds
             var hours = 0;
-            var minutes = 0;
-            var seconds = 0;
+            var minutes = Math.floor(duration / 60);
+            var seconds = duration - (minutes * 60);
             var duration;
             var time = [];
 
-            for (var i = 0; i < videos.length; i++) {
-                duration = videos[i].duration;
-                minutes = Math.floor(duration / 60);
-                seconds = duration - (minutes * 60);
-
-                if (minutes > 60) {
-                    hours = Math.floor(minutes / 60);
-                    hours = minutes - (hours * 60);
-                }
-
-                seconds = seconds.toString();
-                minutes = minutes.toString();
-                hours = hours.toString();
-
-                if (hours !== '0') {
-                    time.push(hours);
-                }
-
-                if ((hours !== '0') && (minutes.length === 1) && (minutes !== '0')) {
-                    time.push('0' + minutes);
-                } else {
-                    time.push(minutes);
-                }
-
-                if (seconds.length === 1) {
-                    time.push('0' + seconds);
-                } else {
-                    time.push(seconds);
-                }
-
-                videos[i].duration = time.join(':');
-
-                time = [];
+            if (minutes > 60) {
+                hours = Math.floor(minutes / 60);
+                hours = minutes - (hours * 60);
             }
-            return videos;
+
+            seconds = seconds.toString();
+            minutes = minutes.toString();
+            hours = hours.toString();
+
+            if (hours !== '0') {
+                time.push(hours);
+            }
+
+            if ((hours !== '0') && (minutes.length === 1) && (minutes !== '0')) {
+                time.push('0' + minutes);
+            } else {
+                time.push(minutes);
+            }
+
+            if (seconds.length === 1) {
+                time.push('0' + seconds);
+            } else {
+                time.push(seconds);
+            }
+
+            return time.join(':');
         }, 
 
         _isPhone : function () {
@@ -449,7 +456,7 @@
 
         _updatePageDescription : function () {
             var $node = $(this.opts.description);
-            $node.text(this.data.playlist_info.description);
+            $node.text(this.data.user.entry.summary.$t);
         },
 
         _updateAbout : function () {
@@ -462,27 +469,38 @@
             );
         },
 
-        _loadMore : function () {
+        _hasMore : function (data) {
+            var lastItemIndex = (data.startIndex - 1) + data.itemsPerPage;
+
+            if (lastItemIndex >= data.totalItems) {
+                return false;
+            } else {
+                return (lastItemIndex + 1);
+            }
+        },
+
+        _loadMore : function (startIndex) {
             var self = this;
-            var page = this.data.playlist.page + 1;
-            $.when(this._fetchData('playlist', page)).then(function(d) {
-                self.render();
+
+            $.when(
+                this._fetchData('videos', startIndex)
+            ).then(function(d) {
+                self.render(false);
             });
         },
 
-        _fetchData : function (key, page) {
+        _fetchData : function (key, index) {
             var self = this;
-            var cache_key = this._constructCacheKey(key, page);
+            var cache_key = this._constructCacheKey(key, index);
             var cache_duration = 1000 * 60 * 60 * 6; // 6 hours
             var data = this._fetchLocalStorage(cache_key);
             var now = (new Date()).getTime();
             var url;
 
             if ( !data || now > (data.cache + cache_duration) ) {
-                url = Mustache.render( dailyMotion[key], {
+                url = Mustache.render( youTube[key], {
                     user : this.opts.user,
-                    playlist : this.opts.playlist,
-                    page : (page) ? page : 1
+                    startIndex : (index) ? index : 1
                 });
 
                 this._togglePageSpinner();
@@ -499,11 +517,21 @@
         },
 
         _fetchLocalStorage : function (key) {
+            var json;
+
             if (Modernizr.localstorage) {
                 if (this.opts.clear_cache) {
                     localStorage.removeItem(key);
                 }
-                return (localStorage[key]) ? JSON.parse(localStorage[key]) : false;
+
+                if (localStorage[key]) {
+                    json = JSON.parse(localStorage[key]);
+
+                    // make sure it's YouTube data
+                    if (json.apiVersion || (json.version && json.entry)) {
+                        return json;
+                    }
+                }
             }
             return false;
         },
@@ -648,11 +676,24 @@
             });
         },
 
-        _capitalize : function (str) {
-            return str.replace(/(?:^|\s)\S/g, function(a) {
-                return a.toUpperCase();
-            });
-        }
+        _removeDailymotionData : function () {
+            var keys = [
+                'playlist',
+                'playlist_info'
+            ];
+            var key;
+
+            if (Modernizr.localstorage) {
+                for (var i = 0; i < keys.length; i++) {
+                    key = this._constructCacheKey(keys[i]);
+                    if (localStorage[key]) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            }
+        },
+
+        version : '2.0',
     };
 
     $.fn[pluginName] = function ( options ) {
