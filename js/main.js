@@ -116,9 +116,8 @@
                 })
             );
 
-            // TODO : update Data & Views
             this._updatePageDescription();
-            // this._updateAbout();
+            this._updateAbout();
 
             setTimeout(function() {
                 /*
@@ -464,9 +463,15 @@
             var re = /\[(.*?)\][\s\t]*\([\s\t]*((?:[^")]*?)(?:[\s\t]+(?:["']).*?)?)[\s\t]*\)/g;
             var match = '<a href="$2">$1</a>';
             var social = Mustache.render( this.social_template, {});
-            $node.html(
-                this.data.user.description.replace(re, match) + social
-            );
+            // TODO : put back the updating text
+            // $node.html(
+            //     this.data.user.description.replace(re, match) + social
+            // );
+
+            // TODO : delete this vvv
+            if ( $node.parent().find('.social').length === 0) {
+                $node.parent().append(social);
+            }
         },
 
         _hasMore : function (data) {
