@@ -1,0 +1,14 @@
+@charset "utf-8";
+
+#gcgc_social_widget {}
+	#gcgc_social_widget form { overflow:hidden; }
+	#gcgc_social_widget label { width:21%; display:inline-block; text-align:right; margin:0 2% 0 0; }
+	#gcgc_social_widget input[type='text'] { width:75%; }
+	#gcgc_social_widget input[type='submit'] { float:right; }
+	#gcgc_social_widget .set { margin-bottom:2em; float:left; width:49%; margin-right: 2%;}
+		#gcgc_social_widget .set:nth-child(2n) { margin:0;}
+	#gcgc_social_widget h4 { font-family:sans-serif; padding-bottom:6px; margin-bottom:4px; color:#8F8F8F; font-size:14px; border-bottom:1px solid #ececec; }
+	#gcgc_social_widget p { margin:0; padding:0.4em 0; overflow:hidden; }
+	#gcgc_social_widget .form-buttons { clear:both; }
+	#gcgc_social_widget .footnote { font-size:11px; color:#888888; clear:both; }
+	

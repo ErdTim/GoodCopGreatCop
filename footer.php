@@ -1,30 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-        <title>{ Good Cop Great Cop }</title>
-        <link rel="shortcut icon" href="../favicon.ico"> 
-        <link rel="stylesheet" href="includes/fontAwesome/css/font-awesome.min.css" />
-        <link rel="stylesheet" href="includes/shadowbox/shadowbox.css" />
-        <link rel="stylesheet" href="css/style.css" />
-    </head>
-    <body>
-        <div class="container">
-
-            <div class="page-spinner"></div>
-        
-            <header>
-                <h1>{<span>Good Cop Great Cop</span>}</h1>
-                <h2>Weekly videos from Matt Porter and Charlie Hankin</h2>
-            </header>
-
-            <section class="main"></section>
+<?php
+/**
+ * The template for displaying the footer.
+ */
+$theme_url = get_template_directory_uri();
+?>
 
             <footer>
-                <img src="images/matt_and_charlie.png" 
-                    data-png-src="images/matt_and_charlie.png" 
+                <img src="<?php echo $theme_url ?>/images/matt_and_charlie.png" 
+                    data-png-src="<?php echo $theme_url ?>/images/matt_and_charlie.png" 
                     data-svg-src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjw
 hLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAxNi4wLjAsIFNWRyBFeHBvcnQgUGx1Zy
 1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4KCjxzdmcKIHhtbG5zOm9zYj0ia
@@ -1223,16 +1206,32 @@ AvPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI
 CAgPC9nPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
 ICAgIDwvc3ZnPg==" alt="Matt and Charlie" />
                 <div class="text">
-                    <p>
-                        Good Cop Great Cop is a weekly web sketch series by writer/director <a href="http://mrmattporter.com/">Matt Porter</a> and painter/animator <a href="http://www.charliehankin.com/">Charlie Hankin</a>. The series has been screened at The Anthology Film Archives, Nitehawk Cinema, and SXSW. Episodes have also been featured at <a href="http://www.collegehumor.com/embed/6762377/atm">CollegeHumor</a>, <a href="http://www.cracked.com/video_18382_when-making-fun-strangers-goes-horribly-wrong.html">Cracked.com</a>, and <a href="http://www.serialoptimist.com/comedians-2/good-cop-great-cop-12155.html">Serial Optimist Magazine</a>.  Matt and Charlie live in Brooklyn, New York.
-                    </p>
+                    <?php echo gcgc_getAboutContent(); ?>
+                    <?php $social_btns = gcgc_getSocialButtons(); ?>
+                        <span class="social">
+                            <?php foreach ($social_btns as $button) : ?>
+                                <a href="<?php echo $button[3]; ?>" target="_blank" class="<?php echo $button[1]; ?>" title="<?php echo $button[0]; ?>">
+                                    <i class="<?php echo $button[2]; ?>"></i>
+                                </a>
+                            <?php endforeach; ?>
+                        <span>
                 </div>
             </footer>
           
         </div>
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script src="js/plugins.js"></script>
-        <script src="includes/shadowbox/shadowbox.js"></script>
-        <script src="js/main.js"></script>
+
+        <script src="<?php echo $theme_url ?>/includes/shadowbox/shadowbox.js"></script>
+        <script src="<?php echo $theme_url ?>/js/main.js"></script>
+        <script>
+            (function($) {
+
+                $('.main').GoodCopGreatCop({
+                    title_base : "<?php echo get_bloginfo('name') ?>"
+                });
+
+            }(jQuery));
+        </script>
+
+        <?php wp_footer(); ?>
     </body>
 </html>
