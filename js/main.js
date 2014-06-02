@@ -1,11 +1,3 @@
-/*
- * Plugin Name: GoodCopGreatCop
- * Plugin URI: http://www.goodcopgreatcop.com
- * Description: YouTube API & view construction
- * Author: Michael Kafka
- * Author URI: http://www.makfak.com
- * Version: 2.0
- */
 ;(function ( $, window, document, undefined ) {
 
     var History = window.History;
@@ -443,7 +435,7 @@
             });
         },
 
-        version : '3.0',
+        version : '3.0'
     };
 
     $.fn[pluginName] = function ( options ) {
