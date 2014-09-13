@@ -1220,18 +1220,6 @@ ICAgIDwvc3ZnPg==" alt="Matt and Charlie" />
           
         </div>
 
-        <script src="<?php echo $theme_url ?>/includes/shadowbox/shadowbox.js"></script>
-        <script src="<?php echo $theme_url ?>/js/main.js"></script>
-        <script>
-            (function($) {
-
-                $('.main').GoodCopGreatCop({
-                    title_base : "<?php echo get_bloginfo('name') ?>"
-                });
-
-            }(jQuery));
-        </script>
-
         <?php wp_footer(); ?>
     </body>
 </html>

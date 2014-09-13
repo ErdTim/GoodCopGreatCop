@@ -450,3 +450,13 @@
     };
 
 })( jQuery, window, document );
+
+
+// init
+(function($) {
+
+    $('.main').GoodCopGreatCop({
+        title_base : window.gcgc_php_data.site_name
+    });
+
+}(jQuery));

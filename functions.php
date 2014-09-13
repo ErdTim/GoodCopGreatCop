@@ -23,21 +23,21 @@ function gcgc_pageMetaTags() {
     $url         = (!$video_id ? get_bloginfo('url') : $video['wordpress_url']);
 
     // Facebook & Google+
-    $output .= '<!-- Facebook & Google+ -->';
-    $output .= '<meta property="og:site_name" content="'. $site_name .'"/>';
-    $output .= '<meta property="og:title" content="'. $title .'"/>';
-    $output .= '<meta property="og:image" content="'. $image . '"/>';
-    $output .= '<meta property="og:description" content="'. $description .'"/>';
-    $output .= '<meta property="og:url" content="'. trailingslashit($url) .'"/>';
+    $output .= '<!-- Facebook & Google+ -->' . "\n\t";
+    $output .= '<meta property="og:site_name" content="'. $site_name .'"/>' . "\n\t";
+    $output .= '<meta property="og:title" content="'. $title .'"/>' . "\n\t";
+    $output .= '<meta property="og:image" content="'. $image . '"/>' . "\n\t";
+    $output .= '<meta property="og:description" content="'. $description .'"/>' . "\n\t";
+    $output .= '<meta property="og:url" content="'. trailingslashit($url) .'"/>' . "\n\n\t";
 
     // Twitter
-    $output .= '<!-- Twitter -->';
-    $output .= '<meta name="twitter:site" content="@goodcopgreatcop">';
-    $output .= '<meta name="twitter:creator" content="@goodcopgreatcop">';
-    $output .= '<meta name="twitter:card" content="summary_large_image">';
-    $output .= '<meta name="twitter:title" content="'. $title .'"/>';
-    $output .= '<meta name="twitter:image" content="'. $image . '"/>';
-    $output .= '<meta name="twitter:description" content="'. $description .'"/>';
+    $output .= '<!-- Twitter -->' . "\n\t";
+    $output .= '<meta name="twitter:site" content="@goodcopgreatcop">' . "\n\t";
+    $output .= '<meta name="twitter:creator" content="@goodcopgreatcop">' . "\n\t";
+    $output .= '<meta name="twitter:card" content="summary_large_image">' . "\n\t";
+    $output .= '<meta name="twitter:title" content="'. $title .'"/>' . "\n\t";
+    $output .= '<meta name="twitter:image" content="'. $image . '"/>' . "\n\t";
+    $output .= '<meta name="twitter:description" content="'. $description .'"/>' . "\n\n";
 
     return $output;
 }
@@ -309,15 +309,26 @@ function query_vars($public_query_vars) {
 // http://www.hongkiat.com/blog/wordpress-url-rewrite/
 // ------------
 add_action( 'init', 'gcgc_addUrlRules' );
-add_filter('query_vars', 'query_vars');
+add_filter( 'query_vars', 'query_vars' );
+
+
+function gcgc_load_scripts() {
+    wp_register_script( 'gcgc-shadowbox', get_template_directory_uri() . '/includes/shadowbox/shadowbox.js', array(), '1.0.0', true);
+    wp_register_script( 'gcgc-plugins', get_template_directory_uri() . '/js/plugins.js', array('jquery', 'gcgc-shadowbox'), '1.0.0', true);
+    wp_register_script( 'gcgc-main', get_template_directory_uri() . '/js/main.js', array('jquery', 'gcgc-plugins', 'gcgc-shadowbox'), '1.0.0', true);
+    wp_localize_script( 'gcgc-main', 'gcgc_php_data', array( 'site_name' => get_bloginfo('name') ) );
+    wp_enqueue_script ( 'gcgc-main' );
+}
+
+add_action( 'wp_enqueue_scripts', 'gcgc_load_scripts' );
 
 
 // ------------
 // Dashboard widget and Social Buttons
 // ------------
 
-add_action('wp_dashboard_setup', array('GCGCSocial', 'setup'));
-add_action("wp_ajax_gcgc_dashboard_social_update", array('GCGCSocial', 'update'));
+add_action( 'wp_dashboard_setup', array('GCGCSocial', 'setup') );
+add_action( 'wp_ajax_gcgc_dashboard_social_update', array('GCGCSocial', 'update') );
 
 class GCGCSocial {
 

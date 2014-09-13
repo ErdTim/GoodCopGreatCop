@@ -8,7 +8,8 @@ $theme_url = get_template_directory_uri();
 <html <?php language_attributes(); ?>>
     <head>
         <meta charset="<?php bloginfo( 'charset' ); ?>" />
-        <meta name="viewport" content="width=device-width" />
+
+        <?php load_template( get_template_directory() . '/ios-metadata.php' ); ?>
 
         <title><?php echo gcgc_getWindowTitle(); ?></title>
 
@@ -23,9 +24,6 @@ $theme_url = get_template_directory_uri();
         <link rel="stylesheet" href="<?php echo $theme_url ?>/style.css" />
 
         <?php echo gcgc_pageMetaTags(); ?>
-
-        <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-        <script src="<?php echo $theme_url ?>/js/plugins.js"></script>
 
         <?php wp_head(); ?>
     </head>
