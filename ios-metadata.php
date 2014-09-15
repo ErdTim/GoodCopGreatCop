@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 
 <!-- Customize home screen title. -->
-<meta name="apple-mobile-web-app-title" content="<?php echo $site_name; ?>"/>
+<meta name="apple-mobile-web-app-title" content="Good Cop"/>
 
 <!-- Disable phone number detection. -->
 <!-- meta name="format-detection" content="telephone=no"/ -->
