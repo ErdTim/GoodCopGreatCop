@@ -9,7 +9,7 @@ $theme_url = get_template_directory_uri();
     <head>
         <meta charset="<?php bloginfo( 'charset' ); ?>" />
 
-        <?php load_template( get_template_directory() . '/ios-metadata.php' ); ?>
+        <?php load_template( get_template_directory() . '/mobile-metadata.php' ); ?>
 
         <title><?php echo gcgc_getWindowTitle(); ?></title>
 
