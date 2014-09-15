@@ -116,4 +116,4 @@
       rel="apple-touch-startup-image"/>
 
 <!-- Prevent text size adjustment on orientation change. -->
-<style>html { -webkit-text-size-adjust: 100%; }</style>
+<style>/* html { -webkit-text-size-adjust: 100%; } */</style>
