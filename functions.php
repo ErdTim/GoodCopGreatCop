@@ -168,16 +168,19 @@ function gcgc_parseYouTubeResponse( $data, $skipChildParse = false ) {
     $response = array();
 
     foreach ( $data as $video ) {
-        $response[$video->id] = array(
-            'id' => $video->id,
-            'title' => $video->title,
-            'description' => $video->description,
-            'duration' => gcgc_prettyDuration($video->duration),
-            'thumbnail' => $video->thumbnail->hqDefault,
-            'youtube_url' => '//www.youtube.com/watch?v=' . $video->id . '',
-            'embed_url' => preg_replace('/\/v\//', '/embed/', $video->content->{'5'}) . '&enablejsapi=0&iv_load_policy=3&showinfo=0',
-            'wordpress_url' => gcgc_makeWpUrl( $video->id, $video->title )
-        );
+        // guards against odd videos that appear in the feed like "Device Support" from uploader "youtubehelp"
+        if ( $video->uploader === 'goodcopgreatcop' ) {
+            $response[$video->id] = array(
+                'id' => $video->id,
+                'title' => $video->title,
+                'description' => $video->description,
+                'duration' => gcgc_prettyDuration($video->duration),
+                'thumbnail' => $video->thumbnail->hqDefault,
+                'youtube_url' => '//www.youtube.com/watch?v=' . $video->id . '',
+                'embed_url' => preg_replace('/\/v\//', '/embed/', $video->content->{'5'}) . '&enablejsapi=0&iv_load_policy=3&showinfo=0',
+                'wordpress_url' => gcgc_makeWpUrl( $video->id, $video->title )
+            );
+        }
     }
 
     return $response;
@@ -280,7 +283,7 @@ function gcgc_getPermalinkVideo() {
             $id = $wp_query->query_vars['video'];
         }
     } else { 
-        // WordPress using default pwrmalink structure like www.site.com/wordpress/?p=123
+        // WordPress using default permalink structure like www.site.com/wordpress/?p=123
         $id = $_GET['video'];
     }
 
