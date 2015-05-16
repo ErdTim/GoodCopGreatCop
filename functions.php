@@ -5,6 +5,8 @@
 
 $GCGC_TRANSIENTS_ID = 'gcgc_transients';
 $GCGC_OPTIONS_ID = 'gcgc_options';
+$GCGC_YOUTUBE_API_KEY = 'AIzaSyCTUKBDvz2w4iPzN5osad8OMzLvfHSVkys';
+$GCGC_YOUTUBE_UPLOADS_CHANNEL_ID = 'UUu6_Ypm5e8WEvBRKop6oblw';
 
 
 function gcgc_pageMetaTags() {
@@ -147,14 +149,44 @@ function gcgc_updateData() {
 }
 
 
-function gcgc_getYouTubeData( $startIndex = '1' ) {
-    $url = 'http://gdata.youtube.com/feeds/api/users/goodcopgreatcop/uploads
-                ?v=2
-                &start-index='. $startIndex . '
-                &alt=jsonc';
-                // &max-results=3';
+function gcgc_getYouTubeUploadData( $startIndex = '' ) {
+    global $GCGC_YOUTUBE_API_KEY;
+    global $GCGC_YOUTUBE_UPLOADS_CHANNEL_ID;
+
+    $url = 'https://www.googleapis.com/youtube/v3/playlistItems
+                ?part=contentDetails
+                &maxResults=50
+                &playlistId='. $GCGC_YOUTUBE_UPLOADS_CHANNEL_ID .'
+                &key=' . $GCGC_YOUTUBE_API_KEY;
+
+    if ( !empty($startIndex) ) {
+        $url = $url . '&pageToken=' . $startIndex;
+    }
+
     $url = preg_replace( '/\s+/', '', $url );
     $response = wp_remote_get( $url );
+
+    return $response;
+}
+
+
+function gcgc_getYouTubeVideosData( $playlist ) {
+    global $GCGC_YOUTUBE_API_KEY;
+
+    $ids = array();
+    foreach ($playlist->items as $item) {
+        array_push( $ids, $item->contentDetails->videoId );
+    }
+    $ids = implode( ",", $ids );
+
+    $url = 'https://www.googleapis.com/youtube/v3/videos
+                ?part=snippet,contentDetails
+                &id='. $ids .'
+                &key=' . $GCGC_YOUTUBE_API_KEY;
+
+    $url = preg_replace( '/\s+/', '', $url );
+    $response = wp_remote_get( $url );
+
     return $response;
 }
 
@@ -162,25 +194,22 @@ function gcgc_getYouTubeData( $startIndex = '1' ) {
 function gcgc_parseYouTubeResponse( $data, $skipChildParse = false ) {
     if (!$skipChildParse) {
         $data = json_decode( $data['body'] );
-        $data = $data->data->items;
+        $data = $data->items;
     }
 
     $response = array();
 
     foreach ( $data as $video ) {
-        // guards against odd videos that appear in the feed like "Device Support" from uploader "youtubehelp"
-        if ( $video->uploader === 'goodcopgreatcop' ) {
-            $response[$video->id] = array(
-                'id' => $video->id,
-                'title' => $video->title,
-                'description' => $video->description,
-                'duration' => gcgc_prettyDuration($video->duration),
-                'thumbnail' => $video->thumbnail->hqDefault,
-                'youtube_url' => '//www.youtube.com/watch?v=' . $video->id . '',
-                'embed_url' => preg_replace('/\/v\//', '/embed/', $video->content->{'5'}) . '&enablejsapi=0&iv_load_policy=3&showinfo=0',
-                'wordpress_url' => gcgc_makeWpUrl( $video->id, $video->title )
-            );
-        }
+        $response[$video->id] = array(
+            'id' => $video->id,
+            'title' => $video->snippet->localized->title,
+            'description' => $video->snippet->localized->description,
+            'duration' => gcgc_prettyDuration($video->contentDetails->duration),
+            'thumbnail' => $video->snippet->thumbnails->high->url,
+            'youtube_url' => '//www.youtube.com/watch?v=' . $video->id . '',
+            'embed_url' => 'http://www.youtube.com/embed/' . $video->id . '?version=3&f=videos&enablejsapi=0&iv_load_policy=3&showinfo=0',
+            'wordpress_url' => gcgc_makeWpUrl( $video->id, $video->snippet->localized->title )
+        );
     }
 
     return $response;
@@ -191,22 +220,31 @@ function gcgc_refreshData() {
     global $GCGC_OPTIONS_ID;
     global $GCGC_TRANSIENTS_ID;
 
-    $startIndex = '1';
+    $startIndex = '';
     $total_data = array();
 
-    while( $startIndex ) {
-        $yt_data = gcgc_getYouTubeData($startIndex);
+    while( $startIndex !== false ) {
+        $uploads_data = gcgc_getYouTubeUploadData($startIndex);
 
         // if YouTube doesn't respond at any point, bail on the flush
-        $response_code = wp_remote_retrieve_response_code( $yt_data );
-        if ( $response_code != 200 ) {
-            return get_option( $GCGC_OPTIONS_ID );;
+        $uploads_response_code = wp_remote_retrieve_response_code( $uploads_data );
+        if ( $uploads_response_code != 200 ) {
+            return get_option( $GCGC_OPTIONS_ID );
         }
 
-        $data = json_decode( $yt_data['body'] );
-        $data = $data->data;
-        $startIndex = gcgc_hasMore($data);
-        $total_data = array_merge($total_data, $data->items);
+        $uploads_data = json_decode( $uploads_data['body'] );
+
+        $videos_data = gcgc_getYouTubeVideosData( $uploads_data );
+
+        $videos_response_code = wp_remote_retrieve_response_code( $videos_data );
+
+        if ( $videos_response_code != 200 ) {
+            return get_option( $GCGC_OPTIONS_ID );
+        }
+
+        $videos_data = json_decode( $videos_data['body'] );
+        $startIndex = gcgc_hasMore( $uploads_data );
+        $total_data = array_merge( $total_data, $videos_data->items );
     }
 
     $db_data = gcgc_parseYouTubeResponse( $total_data, true );
@@ -221,47 +259,18 @@ function gcgc_refreshData() {
 }
 
 
-function gcgc_hasMore($data) {
-    $startIndex = $data->startIndex;
-    $itemsPerPage = $data->itemsPerPage;
-    $totalItems = $data->totalItems;
-    $lastItemIndex = ($startIndex - 1) + $itemsPerPage;
-
-    if ($lastItemIndex >= $totalItems) {
+function gcgc_hasMore( $data ) {
+    if ( !isset( $data->nextPageToken ) ) {
         return false;
     }
 
-    return ($lastItemIndex + 1);
+    return $data->nextPageToken;
 }
 
 
 function gcgc_prettyDuration($seconds) {
-    $h = $seconds / 3600 % 24;
-    $m = $seconds / 60 % 60; 
-    $s = $seconds % 60;
-
-    $output = array();
-
-    // only print hours when present
-    if ($h >= 1) $output[] = "{$h}";
-
-    // always print minutes (even 0)
-    // only add the leading 0 when there are hours
-    if ( $h >= 1 && strlen(strval("{$m}")) < 2 ) {
-        $output[] = "0{$m}";
-    } else {
-        $output[] = "{$m}";
-    }
-
-    // always print seconds
-    // always be 2 digits long (leading 0)
-    if ( strlen(strval("{$s}")) < 2 ) {
-        $output[] = "0{$s}";
-    } else {
-        $output[] = "{$s}";
-    }
-
-    return implode(':', $output);
+    $date = new DateInterval($seconds);
+    return $date->format('%i:%S');
 }
 
 
