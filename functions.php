@@ -112,24 +112,42 @@ function gcgc_updateData() {
     global $GCGC_OPTIONS_ID;
     global $GCGC_TRANSIENTS_ID;
 
-    $db_data = get_option( $GCGC_OPTIONS_ID );
-    $yt_data = gcgc_getYouTubeData();
+    // the transient expires every 15 minutes
+    // the option never expires
+    // the transient expiry tells the app to check for updates
+    // and new items will be added to the option_list
 
-    $response_code = wp_remote_retrieve_response_code( $yt_data );
-    if ( $response_code != 200 ) {
+    $db_data = get_option( $GCGC_OPTIONS_ID );
+
+    $uploads_data = gcgc_getYouTubeUploadData();
+
+    $uploads_response_code = wp_remote_retrieve_response_code( $uploads_data );
+
+    if ( $uploads_response_code != 200 ) {
         set_transient( $GCGC_TRANSIENTS_ID, $db_data, 60*15 );
         return $db_data;
     }
 
-    $yt_data = gcgc_parseYouTubeResponse( $yt_data );
+    $uploads_data = json_decode( $uploads_data['body'] );
+
+    $videos_data = gcgc_getYouTubeVideosData( $uploads_data );
+
+    $videos_response_code = wp_remote_retrieve_response_code( $videos_data );
+
+    if ( $videos_response_code != 200 ) {
+        set_transient( $GCGC_TRANSIENTS_ID, $db_data, 60*15 );
+        return $db_data;
+    }
+
+    $videos_data = gcgc_parseYouTubeResponse( $videos_data );
 
     if ( empty($db_data) ) {
-        $db_data = $yt_data;
+        $db_data = $videos_data;
         update_option( $GCGC_OPTIONS_ID, $db_data );
     } else {
         $initial_db_length = sizeof( $db_data );
         
-        foreach ( $yt_data as $video ) {
+        foreach ( $videos_data as $video ) {
             if ( !array_key_exists( $video['id'], $db_data ) ) {
                 // array_unshift($db_data, $video); doesn't let you specify a key for the new item
                 $db_data = array( $video['id'] => $video ) + $db_data;

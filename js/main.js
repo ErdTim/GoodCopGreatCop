@@ -228,7 +228,7 @@
         },
 
         _parseURLForHistory : function (url) {
-            return url.match(/\/video\/([a-zA-Z0-9_-]{11})\/([a-zA-Z0-9_-]+)/);
+            return url.match(/\/video\/([\w_-]*)\/([\w_-]*)/);
         },
 
         _pushToHistory : function (url) {
